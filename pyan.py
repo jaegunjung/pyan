@@ -534,6 +534,8 @@ class CallGraphVisitor(object):
         colored = ("colored" in kwargs  and  kwargs["colored"])
         grouped = ("grouped" in kwargs  and  kwargs["grouped"])
         nested_groups = ("nested_groups" in kwargs  and  kwargs["nested_groups"])
+        node_off = ("node_off" in kwargs and kwargs["node_off"])
+        nfiles = kwargs.get("nfiles", 0)
         rankdir = kwargs.get("rankdir", "TB")
 
         # Color nodes by top-level namespace. Use HSL: hue = file, lightness = nesting level.
@@ -648,26 +650,27 @@ class CallGraphVisitor(object):
                 s += """%s    graph [style="filled,rounded", fillcolor="#80808018", label="%s"];\n""" % (indent, n.namespace)
 
             # add the node itself
-            if colored:
-                idx = get_hue_idx(n)
-                H = hues[idx]
-                S = 1.0
-                L = max( [1.0 - 0.1*n.get_level(), 0.1] )
-                A = 0.7  # make nodes translucent (to handle possible overlaps)
-                fill_RGBA = list(hsl2rgb(H,S,L))
-                fill_RGBA.append(A)
-                fill_RGBA = htmlize_rgb( *fill_RGBA )
+            if vis_node_list.index(n) >= nfiles:
+                if colored:
+                    idx = get_hue_idx(n)
+                    H = hues[idx]
+                    S = 1.0
+                    L = max( [1.0 - 0.1*n.get_level(), 0.1] )
+                    A = 0.7  # make nodes translucent (to handle possible overlaps)
+                    fill_RGBA = list(hsl2rgb(H,S,L))
+                    fill_RGBA.append(A)
+                    fill_RGBA = htmlize_rgb( *fill_RGBA )
 
-                if L >= 0.3:
-                    text_RGB = htmlize_rgb( 0.0, 0.0, 0.0 )  # black text on light nodes
+                    if L >= 0.3:
+                        text_RGB = htmlize_rgb( 0.0, 0.0, 0.0 )  # black text on light nodes
+                    else:
+                        text_RGB = htmlize_rgb( 1.0, 1.0, 1.0 )  # white text on dark nodes
+
+                    s += """%s    %s [label="%s", style="filled", fillcolor="%s", fontcolor="%s", group="%s"];\n""" % (indent, n.get_label(), n.get_short_name(), fill_RGBA, text_RGB, idx)
                 else:
-                    text_RGB = htmlize_rgb( 1.0, 1.0, 1.0 )  # white text on dark nodes
-
-                s += """%s    %s [label="%s", style="filled", fillcolor="%s", fontcolor="%s", group="%s"];\n""" % (indent, n.get_label(), n.get_short_name(), fill_RGBA, text_RGB, idx)
-            else:
-                fill_RGBA = htmlize_rgb( 1.0, 1.0, 1.0, 0.7 )
-                idx = get_hue_idx(n)
-                s += """%s    %s [label="%s", style="filled", fillcolor="%s", fontcolor="#000000", group="%s"];\n""" % (indent, n.get_label(), n.get_short_name(), fill_RGBA, idx)
+                    fill_RGBA = htmlize_rgb( 1.0, 1.0, 1.0, 0.7 )
+                    idx = get_hue_idx(n)
+                    s += """%s    %s [label="%s", style="filled", fillcolor="%s", fontcolor="#000000", group="%s"];\n""" % (indent, n.get_label(), n.get_short_name(), fill_RGBA, idx)
 
         if grouped:
             if nested_groups:
@@ -695,7 +698,8 @@ class CallGraphVisitor(object):
             for n in self.uses_edges:
                 for n2 in self.uses_edges[n]:
                     if n2.defined and n2 != n:
-                        s += """    %s -> %s;\n""" % (n.get_label(), n2.get_label())
+                        if not node_off or (n.get_label() not in n2.get_label()):
+                            s += """    %s -> %s;\n""" % (n.get_label(), n2.get_label())
 
         s += """}\n"""  # terminate "digraph G {"
         return s
@@ -797,6 +801,9 @@ def main():
                         "Allowed values: ['TB', 'LR', 'BT', 'RL']. "
                         "[dot only]"
                       ))
+    parser.add_option("-x", "--node-off",
+                      action="store_true", default=False, dest="node_off",
+                      help="remove nodes to make even simpler")
 
     options, args = parser.parse_args()
     filenames = [fn2 for fn in args for fn2 in glob(fn)]
@@ -839,7 +846,9 @@ def main():
                        colored=options.colored,
                        grouped=options.grouped,
                        nested_groups=options.nested_groups,
-                       rankdir=options.rankdir)
+                       rankdir=options.rankdir,
+                       node_off=options.node_off,
+                       nfiles=len(filenames))
     if options.tgf:
         print v.to_tgf(draw_defines=options.draw_defines,
                        draw_uses=options.draw_uses)
