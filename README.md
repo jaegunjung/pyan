@@ -6,4 +6,4 @@ https://github.com/davidfraser/pyan/tree/pre-python3
 
 Introduced an option to turn off file as below,
 
-![Sample result](pyan_a0.png)
+![Sample result](pyan.png)
