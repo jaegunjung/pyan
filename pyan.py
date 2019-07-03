@@ -650,26 +650,27 @@ class CallGraphVisitor(object):
                 s += """%s    graph [style="filled,rounded", fillcolor="#80808018", label="%s"];\n""" % (indent, n.namespace)
 
             # add the node itself
-            if vis_node_list.index(n) >= nfiles:
-                if colored:
-                    idx = get_hue_idx(n)
-                    H = hues[idx]
-                    S = 1.0
-                    L = max( [1.0 - 0.1*n.get_level(), 0.1] )
-                    A = 0.7  # make nodes translucent (to handle possible overlaps)
-                    fill_RGBA = list(hsl2rgb(H,S,L))
-                    fill_RGBA.append(A)
-                    fill_RGBA = htmlize_rgb( *fill_RGBA )
+            if colored:
+                idx = get_hue_idx(n)
+                H = hues[idx]
+                S = 1.0
+                L = max( [1.0 - 0.1*n.get_level(), 0.1] )
+                A = 0.7  # make nodes translucent (to handle possible overlaps)
+                fill_RGBA = list(hsl2rgb(H,S,L))
+                fill_RGBA.append(A)
+                fill_RGBA = htmlize_rgb( *fill_RGBA )
 
-                    if L >= 0.3:
-                        text_RGB = htmlize_rgb( 0.0, 0.0, 0.0 )  # black text on light nodes
-                    else:
-                        text_RGB = htmlize_rgb( 1.0, 1.0, 1.0 )  # white text on dark nodes
-
-                    s += """%s    %s [label="%s", style="filled", fillcolor="%s", fontcolor="%s", group="%s"];\n""" % (indent, n.get_label(), n.get_short_name(), fill_RGBA, text_RGB, idx)
+                if L >= 0.3:
+                    text_RGB = htmlize_rgb( 0.0, 0.0, 0.0 )  # black text on light nodes
                 else:
-                    fill_RGBA = htmlize_rgb( 1.0, 1.0, 1.0, 0.7 )
-                    idx = get_hue_idx(n)
+                    text_RGB = htmlize_rgb( 1.0, 1.0, 1.0 )  # white text on dark nodes
+
+                if not node_off or idx > 0:
+                    s += """%s    %s [label="%s", style="filled", fillcolor="%s", fontcolor="%s", group="%s"];\n""" % (indent, n.get_label(), n.get_short_name(), fill_RGBA, text_RGB, idx)
+            else:
+                fill_RGBA = htmlize_rgb( 1.0, 1.0, 1.0, 0.7 )
+                idx = get_hue_idx(n)
+                if not node_off or idx > 0:
                     s += """%s    %s [label="%s", style="filled", fillcolor="%s", fontcolor="#000000", group="%s"];\n""" % (indent, n.get_label(), n.get_short_name(), fill_RGBA, idx)
 
         if grouped:
@@ -698,7 +699,7 @@ class CallGraphVisitor(object):
             for n in self.uses_edges:
                 for n2 in self.uses_edges[n]:
                     if n2.defined and n2 != n:
-                        if not node_off or (n.get_label() not in n2.get_label()):
+                        if not node_off or n.namespace:
                             s += """    %s -> %s;\n""" % (n.get_label(), n2.get_label())
 
         s += """}\n"""  # terminate "digraph G {"
