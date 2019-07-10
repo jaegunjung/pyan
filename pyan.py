@@ -534,7 +534,7 @@ class CallGraphVisitor(object):
         colored = ("colored" in kwargs  and  kwargs["colored"])
         grouped = ("grouped" in kwargs  and  kwargs["grouped"])
         nested_groups = ("nested_groups" in kwargs  and  kwargs["nested_groups"])
-        node_off = ("node_off" in kwargs and kwargs["node_off"])
+        root_off = ("root_off" in kwargs and kwargs["root_off"])
         nfiles = kwargs.get("nfiles", 0)
         rankdir = kwargs.get("rankdir", "TB")
 
@@ -665,12 +665,12 @@ class CallGraphVisitor(object):
                 else:
                     text_RGB = htmlize_rgb( 1.0, 1.0, 1.0 )  # white text on dark nodes
 
-                if not node_off or idx > 0:
+                if not root_off or idx > 0:
                     s += """%s    %s [label="%s", style="filled", fillcolor="%s", fontcolor="%s", group="%s"];\n""" % (indent, n.get_label(), n.get_short_name(), fill_RGBA, text_RGB, idx)
             else:
                 fill_RGBA = htmlize_rgb( 1.0, 1.0, 1.0, 0.7 )
                 idx = get_hue_idx(n)
-                if not node_off or idx > 0:
+                if not root_off or idx > 0:
                     s += """%s    %s [label="%s", style="filled", fillcolor="%s", fontcolor="#000000", group="%s"];\n""" % (indent, n.get_label(), n.get_short_name(), fill_RGBA, idx)
 
         if grouped:
@@ -699,7 +699,7 @@ class CallGraphVisitor(object):
             for n in self.uses_edges:
                 for n2 in self.uses_edges[n]:
                     if n2.defined and n2 != n:
-                        if not node_off or n.namespace:
+                        if not root_off or n.namespace:
                             s += """    %s -> %s;\n""" % (n.get_label(), n2.get_label())
 
         s += """}\n"""  # terminate "digraph G {"
@@ -802,9 +802,9 @@ def main():
                         "Allowed values: ['TB', 'LR', 'BT', 'RL']. "
                         "[dot only]"
                       ))
-    parser.add_option("-x", "--node-off",
-                      action="store_true", default=False, dest="node_off",
-                      help="remove nodes to make even simpler")
+    parser.add_option("-x", "--root-off",
+                      action="store_true", default=False, dest="root_off",
+                      help="remove file name in the starting oval to make even simpler")
 
     options, args = parser.parse_args()
     filenames = [fn2 for fn in args for fn2 in glob(fn)]
@@ -848,7 +848,7 @@ def main():
                        grouped=options.grouped,
                        nested_groups=options.nested_groups,
                        rankdir=options.rankdir,
-                       node_off=options.node_off,
+                       root_off=options.root_off,
                        nfiles=len(filenames))
     if options.tgf:
         print v.to_tgf(draw_defines=options.draw_defines,
